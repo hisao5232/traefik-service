@@ -1,0 +1,59 @@
+services:
+  traefik:
+    image: traefik:latest
+    container_name: traefik
+    command:
+      - "--providers.docker=true"
+      - "--providers.file.filename=/etc/traefik/dynamic_conf.toml"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--api.dashboard=true"
+      - "--certificatesresolvers.lets-encrypt.acme.email=${ACME_EMAIL}"
+      - "--certificatesresolvers.lets-encrypt.acme.storage=/acme.json"
+      - "--certificatesresolvers.lets-encrypt.acme.httpChallenge.entryPoint=web"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./traefik/traefik.toml:/etc/traefik/traefik.toml"
+      - "./traefik/dynamic_conf.toml:/etc/traefik/dynamic_conf.toml"
+      - "./traefik/acme.json:/acme.json"
+
+    labels:
+      - "traefik.enable=true"
+
+      # ===== Traefik Dashboard を traefik.example.com で公開 =====
+      - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.${DOMAIN}`)"
+      - "traefik.http.routers.traefik-dashboard.entrypoints=websecure"
+      - "traefik.http.routers.traefik-dashboard.tls.certresolver=lets-encrypt"
+      - "traefik.http.routers.traefik-dashboard.service=api@internal"
+      
+      # Basic 認証（middleware）
+      - "traefik.http.routers.traefik-dashboard.middlewares=traefik-auth"
+      - "traefik.http.middlewares.traefik-auth.basicauth.users=${TRAEFIK_BASIC_AUTH}"
+
+    restart: always
+
+  flask:
+    build: ./flask
+    container_name: flask-service
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.flask.rule=Host(`todo-flask.${DOMAIN}`)"
+      - "traefik.http.routers.flask.entrypoints=websecure"
+      - "traefik.http.routers.flask.tls.certresolver=lets-encrypt"
+      - "traefik.http.services.flask.loadbalancer.server.port=5000"
+    restart: always
+
+  streamlit:
+    build: ./streamlit
+    container_name: streamlit-service
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.streamlit.rule=Host(`stock-streamlit.${DOMAIN}`)"
+      - "traefik.http.routers.streamlit.entrypoints=websecure"
+      - "traefik.http.routers.streamlit.tls.certresolver=lets-encrypt"
+      - "traefik.http.services.streamlit.loadbalancer.server.port=8501"
+    restart: always
+

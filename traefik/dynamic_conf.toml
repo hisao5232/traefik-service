@@ -1,0 +1,2 @@
+[http.middlewares.simple-auth.basicAuth]
+  users = ["admin:$apr1$H6uskkkW$IgXLP6ewTrSu34G1dP3Pw/"]  # admin:password

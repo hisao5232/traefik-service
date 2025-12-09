@@ -1,0 +1,17 @@
+[entryPoints]
+  [entryPoints.web]
+    address = ":80"
+  [entryPoints.websecure]
+    address = ":443"
+
+[api]
+  dashboard = true
+
+[providers]
+  docker = true
+  file = { filename = "/etc/traefik/dynamic_conf.toml" }
+
+[certificatesResolvers.lets-encrypt.acme]
+  email = "info@go-pro-world.net"
+  storage = "acme.json"
+  httpChallenge = { entryPoint = "web" }
