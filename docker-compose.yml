@@ -57,3 +57,16 @@ services:
       - "traefik.http.services.streamlit.loadbalancer.server.port=8501"
     restart: always
 
+  mail-webhook:
+    build: ./mail-webhook
+    container_name: mail-webhook-service
+    environment:
+      - DISCORD_WEBHOOK=${DISCORD_WEBHOOK}
+      - RESEND_API_KEY=${RESEND_API_KEY}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mail-webhook.rule=Host(`resend-mail.${DOMAIN}`)"
+      - "traefik.http.routers.mail-webhook.entrypoints=websecure"
+      - "traefik.http.routers.mail-webhook.tls.certresolver=lets-encrypt"
+      - "traefik.http.services.mail-webhook.loadbalancer.server.port=3000"
+    restart: always
