@@ -46,12 +46,12 @@ services:
       - "traefik.http.services.flask.loadbalancer.server.port=5000"
     restart: always
 
-  streamlit:
-    build: ./streamlit
-    container_name: streamlit-service
+  economic-news:
+    build: ./economic-news/streamlit
+    container_name: economic-news-streamlit
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.streamlit.rule=Host(`stock-streamlit.${DOMAIN}`)"
+      - "traefik.http.routers.streamlit.rule=Host(`stock-streamlit.${DOMAIN}`) && PathPrefix(`/`)"
       - "traefik.http.routers.streamlit.entrypoints=websecure"
       - "traefik.http.routers.streamlit.tls.certresolver=lets-encrypt"
       - "traefik.http.services.streamlit.loadbalancer.server.port=8501"

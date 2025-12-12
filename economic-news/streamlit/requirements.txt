@@ -1,0 +1,6 @@
+streamlit
+pandas
+requests
+playwright
+yfinance
+plotly
