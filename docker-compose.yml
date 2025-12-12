@@ -70,3 +70,51 @@ services:
       - "traefik.http.routers.mail-webhook.tls.certresolver=lets-encrypt"
       - "traefik.http.services.mail-webhook.loadbalancer.server.port=3000"
     restart: always
+
+  db:
+    # 公式のPostgreSQLイメージを使用
+    image: postgres:16-alpine
+    
+    # .envファイルから環境変数を読み込み、データベースの設定を行う
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      
+    # データを永続化するためのボリュームを設定
+    # コンテナが削除されてもデータはホストマシン上に残り、次回起動時に再利用されます
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+      
+    # データベースに外部からアクセスできるようにポートを公開
+    # ホスト側:コンテナ側 の形式。DB_PORTは.envから読み込まれる。
+    ports:
+      - "${DB_PORT}:5432"
+      
+    # コンテナが予期せず停止した場合に自動的に再起動する設定
+    restart: unless-stopped
+
+    healthcheck: # DBが起動してからスクレイパーを起動するためのヘルスチェック
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  scraper:
+    build:
+      context: ./economic-news/scraper
+    # scraperコンテナからDBコンテナにアクセスするために、DB_HOSTをサービス名 'db' に設定
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      DB_HOST: db # ★重要: Dockerネットワーク内のホスト名
+      DB_PORT: 5432
+    # DBコンテナが完全に起動するまで待機
+    depends_on:
+      db:
+        condition: service_healthy # DBがヘルスチェックをパスしてから起動
+    
+# ホストマシンにデータを保存するためのボリュームを定義
+volumes:
+  postgres_data:
