@@ -15,6 +15,15 @@ nikkei_data = yf.download(nikkei_ticker, period=period, interval="1d")
 if isinstance(nikkei_data.columns, pd.MultiIndex):
     nikkei_data.columns = nikkei_data.columns.get_level_values(0)
 
+# ここに昨日の日経平均の終値を表示　H2タグくらいの大きさ
+if not nikkei_data.empty and "Close" in nikkei_data.columns:
+    # 最後のデータポイント（通常は「昨日」の終値）を取得
+    last_close_nikkei = nikkei_data["Close"].iloc[-1]
+    # H2タグくらいの大きさで表示
+    st.markdown(f"## 昨日の日経平均終値: {last_close_nikkei:,.2f}")
+else:
+    st.info("終値データが利用できません。")
+
 st.subheader(f"{nikkei_ticker} のローソク足チャート")
 if not nikkei_data.empty and all(col in nikkei_data.columns for col in ["Open", "High", "Low", "Close"]):
     fig_nikkei = go.Figure(
@@ -44,6 +53,15 @@ usd_jpy_ticker = "JPY=X"
 usd_jpy_data = yf.download(usd_jpy_ticker, period=period, interval="1d")
 if isinstance(usd_jpy_data.columns, pd.MultiIndex):
     usd_jpy_data.columns = usd_jpy_data.columns.get_level_values(0)
+
+# ここに昨日のドル円の終値を表示　H2タグくらいの大きさ
+if not usd_jpy_data.empty and "Close" in usd_jpy_data.columns:
+    # 最後のデータポイント（通常は「昨日」の終値）を取得
+    last_close_fx = usd_jpy_data["Close"].iloc[-1]
+    # H2タグくらいの大きさで表示
+    st.markdown(f"## 昨日のドル円終値: {last_close_fx:,.3f}円")
+else:
+    st.info("終値データが利用できません。")
 
 st.subheader(f"{usd_jpy_ticker} の終値折れ線グラフ")
 if not usd_jpy_data.empty and "Close" in usd_jpy_data.columns:
