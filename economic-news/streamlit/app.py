@@ -4,6 +4,7 @@ import requests
 import yfinance as yf
 import pandas as pd
 import plotly.graph_objs as go
+from datetime import datetime
 
 st.title("日経平均とドル円レートのチャート")
 
@@ -82,3 +83,53 @@ if not usd_jpy_data.empty and "Close" in usd_jpy_data.columns:
     st.plotly_chart(fig_fx)
 else:
     st.warning("ドル円レートのデータがありません。")
+
+# ページ設定
+st.set_page_config(page_title="経済ニュースリーダー", page_icon="📰", layout="wide")
+
+# APIのURL (Dockerネットワーク内ではなく、ブラウザからアクセス可能なURLを指定)
+API_URL = "https://stock-news-api.go-pro-world.net/news"
+
+st.title("📰 経済ニュース・ダッシュボード")
+st.caption("日経ビジネス・Yahooニュース・東洋経済から最新記事を取得しています")
+
+# データの取得（キャッシュを利用して高速化）
+@st.cache_data(ttl=600)  # 10分間キャッシュ
+def fetch_news():
+    try:
+        response = requests.get(API_URL, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        df = pd.DataFrame(data)
+        # 日時を読みやすい形式に変換
+        df['scraped_at'] = pd.to_datetime(df['scraped_at']).dt.strftime('%Y/%m/%d %H:%M')
+        return df
+    except Exception as e:
+        st.error(f"APIからのデータ取得に失敗しました: {e}")
+        return pd.DataFrame()
+
+df = fetch_news()
+
+if not df.empty:
+    # ニュースソースごとにタブを作成
+    sources = ["すべて"] + list(df['source'].unique())
+    tabs = st.tabs(sources)
+
+    for i, source in enumerate(sources):
+        with tabs[i]:
+            # フィルタリング
+            filtered_df = df if source == "すべて" else df[df['source'] == source]
+            
+            # 記事をリスト表示
+            for _, row in filtered_df.iterrows():
+                with st.container():
+                    col1, col2 = st.columns([0.8, 0.2])
+                    with col1:
+                        st.markdown(f"### [{row['title']}]({row['url']})")
+                        st.caption(f"ソース: {row['source']} | 取得日時: {row['scraped_at']}")
+                    with col2:
+                        # リンクボタン
+                        st.link_button("記事を開く", row['url'])
+                    st.divider()
+else:
+    st.info("現在表示できるニュースはありません。スクレイパーが動作しているか確認してください。")

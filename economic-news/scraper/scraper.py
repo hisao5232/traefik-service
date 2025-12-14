@@ -1,6 +1,6 @@
 import asyncio
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 import pytz
 from playwright.async_api import async_playwright
 
@@ -98,6 +98,24 @@ async def setup_database():
         # スクレピングを実行させないように、致命的なエラーとして再raise
         raise
 
+async def delete_old_data(conn):
+    """1週間以上前の古いニュースデータを削除する"""
+    try:
+        # 現在時刻から7日前の時間を計算（JST）
+        jst = pytz.timezone('Asia/Tokyo')
+        one_week_ago = datetime.now(jst) - timedelta(days=7)
+
+        # 削除クエリの実行
+        delete_query = "DELETE FROM news_articles WHERE scraped_at < $1;"
+        result = await conn.execute(delete_query, one_week_ago)
+        
+        # ログ出力（例：DELETE 5 のような形式から件数を取得）
+        count = result.split(" ")[1]
+        if int(count) > 0:
+            print(f"🧹 古いデータを {count} 件削除しました。")
+    except Exception as e:
+        print(f"⚠️ 古いデータの削除中にエラーが発生しました: {e}")
+
 async def save_to_database(news_data: list):
     """取得したニュースデータをPostgreSQLに保存する"""
     if not news_data:
@@ -119,6 +137,10 @@ async def save_to_database(news_data: list):
             port=DB_PORT
         )
         
+        # --- 追加: 保存の前に古いデータを削除 ---
+        await delete_old_data(conn)
+        # -----------------------------------
+
         # INSERTクエリ (ON CONFLICT DO NOTHINGで重複をスキップ)
         insert_query = """
             INSERT INTO news_articles(source, title, url, scraped_at) 
