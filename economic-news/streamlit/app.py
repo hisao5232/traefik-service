@@ -6,6 +6,8 @@ import pandas as pd
 import plotly.graph_objs as go
 from datetime import datetime
 
+API_KEY = os.getenv("API_SECRET_KEY")
+
 st.title("日経平均とドル円レートのチャート")
 
 # --- 日経平均チャート ---
@@ -97,8 +99,11 @@ st.caption("日経ビジネス・Yahooニュース・東洋経済から最新記
 @st.cache_data(ttl=600)  # 10分間キャッシュ
 def fetch_news():
     try:
-        response = requests.get(API_URL, timeout=10)
+        # ヘッダーにAPIキーをセット
+        headers = {"X-API-KEY": API_KEY}
+        response = requests.get(API_URL, headers=headers, timeout=10)
         response.raise_for_status()
+
         data = response.json()
         df = pd.DataFrame(data)
         # 日時を読みやすい形式に変換

@@ -1,10 +1,22 @@
 # main_api.py
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Security, Depends
+from fastapi.security.api_key import APIKeyHeader
 import asyncpg
 import os
 from typing import List
 from pydantic import BaseModel
 from datetime import datetime
+
+# APIキーの設定
+API_KEY = os.getenv("API_SECRET_KEY")
+API_KEY_NAME = "X-API-KEY"
+api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
+
+async def get_api_key(api_key_header: str = Depends(api_key_header)):
+    if api_key_header == API_KEY:
+        return api_key_header
+    else:
+        raise HTTPException(status_code=403, detail="Could not validate credentials")
 
 app = FastAPI(title="Stock News API")
 
@@ -26,7 +38,7 @@ def read_root():
     return {"message": "Stock News API is running"}
 
 @app.get("/news", response_model=List[NewsArticle])
-async def get_news(limit: int = 30):
+async def get_news(limit: int = 30, api_key: str = Depends(get_api_key)):
     try:
         conn = await asyncpg.connect(
             user=DB_USER,

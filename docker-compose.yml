@@ -49,6 +49,8 @@ services:
   economic-news:
     build: ./economic-news/streamlit
     container_name: economic-news-streamlit
+    environment:
+      - API_SECRET_KEY=${API_SECRET_KEY}
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.streamlit.rule=Host(`stock-streamlit.${DOMAIN}`) && PathPrefix(`/`)"
@@ -124,6 +126,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       DB_HOST: db
       DB_PORT: 5432
+      API_SECRET_KEY: ${API_SECRET_KEY}
     depends_on:
       db:
         condition: service_healthy
