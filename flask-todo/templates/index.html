@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>TODOアプリ</title>
+    <style>
+        body { font-family: sans-serif; margin: 50px; background-color: #f4f4f4; }
+        .container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        ul { list-style: none; padding: 0; }
+        li { padding: 10px; border-bottom: 1px solid #eee; }
+        input[type="text"] { padding: 10px; width: 70%; }
+        button { padding: 10px; cursor: pointer; background: #28a745; color: white; border: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>TODOリスト</h1>
+        <form action="/add" method="POST" style="margin-bottom: 20px;">
+            <input type="text" name="task" placeholder="新しいタスクを入力..." required>
+            <button type="submit">追加</button>
+        </form>
+
+        <ul>
+            {% for todo in todos %}
+            <li style="display: flex; justify-content: space-between; align-items: center;">
+                <form action="/update/{{ todo.id }}" method="POST" style="flex-grow: 1; display: flex;">
+                    <input type="text" name="task" value="{{ todo.task }}" style="border:none; background:transparent; flex-grow:1;">
+                    <button type="submit" style="background: #007bff; margin-right: 5px;">更新</button>
+                </form>
+                
+                <a href="/delete/{{ todo.id }}" style="color: red; text-decoration: none; font-size: 20px;" onclick="return confirm('削除しますか？')">&times;</a>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</body>
+</html>

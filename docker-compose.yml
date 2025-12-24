@@ -35,9 +35,16 @@ services:
 
     restart: always
 
-  flask:
-    build: ./flask
-    container_name: flask-service
+  flask-todo:
+    build: ./flask-todo
+    container_name: flask-todo-service
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_HOST: db-flask
+    depends_on:
+      - db-flask
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.flask.rule=Host(`todo-flask.${DOMAIN}`)"
@@ -45,6 +52,18 @@ services:
       - "traefik.http.routers.flask.tls.certresolver=lets-encrypt"
       - "traefik.http.services.flask.loadbalancer.server.port=5000"
     restart: always
+
+  db-flask:
+    image: mysql:8.0
+    container_name: db-flask
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - mysql_todo_data:/var/lib/mysql
 
   economic-news:
     build: ./economic-news/streamlit
@@ -73,11 +92,9 @@ services:
       - "traefik.http.services.mail-webhook.loadbalancer.server.port=3000"
     restart: always
 
-  db:
-    # 公式のPostgreSQLイメージを使用
+  db-stock:
     image: postgres:16-alpine
-    
-    # .envファイルから環境変数を読み込み、データベースの設定を行う
+    container_name: db-stock
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -86,7 +103,7 @@ services:
     # データを永続化するためのボリュームを設定
     # コンテナが削除されてもデータはホストマシン上に残り、次回起動時に再利用されます
     volumes:
-      - postgres_data:/var/lib/postgresql/data/
+      - postgres_stock_data:/var/lib/postgresql/data/
       
     # データベースに外部からアクセスできるようにポートを公開
     # ホスト側:コンテナ側 の形式。DB_PORTは.envから読み込まれる。
@@ -110,11 +127,11 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-      DB_HOST: db # ★重要: Dockerネットワーク内のホスト名
+      DB_HOST: db-stock # ★重要: Dockerネットワーク内のホスト名
       DB_PORT: 5432
     # DBコンテナが完全に起動するまで待機
     depends_on:
-      db:
+      db-stock:
         condition: service_healthy # DBがヘルスチェックをパスしてから起動
   stock-news-api:
     build:
@@ -124,11 +141,11 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-      DB_HOST: db
+      DB_HOST: db-stock
       DB_PORT: 5432
       API_SECRET_KEY: ${API_SECRET_KEY}
     depends_on:
-      db:
+      db-stock:
         condition: service_healthy
     labels:
       - "traefik.enable=true"
@@ -140,4 +157,6 @@ services:
     
 # ホストマシンにデータを保存するためのボリュームを定義
 volumes:
-  postgres_data:
+  postgres_stock_data:
+  mysql_todo_data:
+  
